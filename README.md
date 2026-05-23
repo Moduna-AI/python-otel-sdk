@@ -4,8 +4,7 @@ Python OpenTelemetry helpers for Moduna AI traces.
 
 `moduna-otel` makes Moduna tracing easy to add with one import and one
 instantiation. It configures OpenTelemetry once, exports traces to Moduna over
-OTLP HTTP, and provides ergonomic helpers for LangChain and Vercel AI SDK style
-telemetry metadata.
+OTLP HTTP, and provides ergonomic helpers for Python LangChain applications.
 
 ## Installation
 
@@ -112,39 +111,6 @@ LangChain global callback APIs vary across versions. If global registration is
 not available in your installed LangChain version, Moduna logs one warning and
 continues without breaking application code.
 
-## Vercel AI SDK Style Telemetry
-
-The Python package provides metadata compatible with Moduna's Vercel AI SDK
-telemetry keys:
-
-```python
-from moduna_otel import ModunaOTEL
-
-otel = ModunaOTEL(
-    agent_name="support-agent",
-    framework="vercel-ai-sdk",
-)
-
-telemetry = otel.vercel_telemetry(
-    {
-        "conversation_id": "conversation-123",
-        "session_id": "session-456",
-    }
-)
-
-assert telemetry == {
-    "isEnabled": True,
-    "metadata": {
-        "moduna.conversation.id": "conversation-123",
-        "moduna.session.id": "session-456",
-    },
-}
-```
-
-Use this dictionary anywhere your integration accepts metadata-style telemetry,
-or forward the `metadata` values to a TypeScript service using Vercel AI SDK
-`experimental_telemetry`.
-
 ## Manual Instrumentation
 
 Use `instrument()` to wrap custom model calls or application work in a Moduna
@@ -181,12 +147,16 @@ then re-raised.
 ```python
 ModunaOTEL(
     agent_name="support-agent",
-    framework="langchain",  # "langchain" or "vercel-ai-sdk"
+    framework="langchain",  # Python currently supports LangChain
     api_key=None,           # defaults to MODUNA_API_KEY
     headers=None,           # extra OTLP HTTP headers
     auto_shutdown=True,     # flush on process exit
 )
 ```
+
+`vercel-ai-sdk` is not supported by this Python package because Vercel AI SDK is
+not available for Python. Use Moduna's TypeScript SDK for Vercel AI SDK
+applications.
 
 It also accepts a mapping:
 

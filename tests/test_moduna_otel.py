@@ -81,7 +81,7 @@ def test_constructor_initializes_singleton_provider_once(monkeypatch: pytest.Mon
     monkeypatch.setattr(module.trace, "set_tracer_provider", set_provider)
 
     ModunaOTEL("agent-a", "langchain", api_key="key", auto_shutdown=False)
-    ModunaOTEL("agent-b", "vercel-ai-sdk", api_key="key", auto_shutdown=False)
+    ModunaOTEL("agent-b", "langchain", api_key="key", auto_shutdown=False)
 
     assert FakeProvider.created == 1
     assert set_provider.call_count == 1
@@ -101,19 +101,16 @@ def test_constructor_accepts_mapping_config(monkeypatch: pytest.MonkeyPatch) -> 
     assert otel.framework == "langchain"
 
 
-def test_vercel_telemetry_returns_moduna_metadata() -> None:
-    """Vercel telemetry contains exact Moduna metadata keys."""
-    otel = ModunaOTEL("agent", "vercel-ai-sdk", auto_shutdown=False)
+def test_constructor_rejects_vercel_ai_sdk_framework() -> None:
+    """The Python SDK does not expose Vercel AI SDK support."""
+    with pytest.raises(TypeError, match="only supports the 'langchain' framework"):
+        ModunaOTEL("agent", "vercel-ai-sdk", auto_shutdown=False)  # type: ignore[arg-type]
 
-    telemetry = otel.vercel_telemetry({"conversation_id": "c1", "sessionId": "s1"})
 
-    assert telemetry == {
-        "isEnabled": True,
-        "metadata": {
-            "moduna.conversation.id": "c1",
-            "moduna.session.id": "s1",
-        },
-    }
+def test_mapping_config_rejects_vercel_ai_sdk_framework() -> None:
+    """Mapping config rejects non-Python framework names."""
+    with pytest.raises(TypeError, match="only supports the 'langchain' framework"):
+        ModunaOTEL({"agentName": "agent", "framework": "vercel-ai-sdk", "autoShutdown": False})
 
 
 def test_instrument_sets_attributes_and_ends_span(monkeypatch: pytest.MonkeyPatch) -> None:

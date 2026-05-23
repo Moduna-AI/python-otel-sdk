@@ -187,16 +187,6 @@ class ModunaOTEL:
         span.end()
         return result
 
-    def vercel_telemetry(
-        self,
-        context: ModunaTraceContext | None = None,
-    ) -> dict[str, Any]:
-        """Return Vercel AI SDK compatible metadata-style telemetry settings."""
-        return {
-            "isEnabled": True,
-            "metadata": self._trace_metadata(context or {}),
-        }
-
     def langchain_handler(
         self,
         context: ModunaTraceContext | None = None,
@@ -265,6 +255,7 @@ class ModunaOTEL:
     ) -> ModunaOTELConfig:
         """Normalize constructor input into a typed config object."""
         if isinstance(agent_name, ModunaOTELConfig):
+            self._validate_framework(agent_name.framework)
             return ModunaOTELConfig(
                 agent_name=agent_name.agent_name,
                 framework=agent_name.framework,
@@ -275,8 +266,7 @@ class ModunaOTEL:
 
         if isinstance(agent_name, Mapping):
             mapped_framework = agent_name.get("framework", framework)
-            if mapped_framework not in ("langchain", "vercel-ai-sdk"):
-                raise TypeError("ModunaOTEL config requires a supported framework.")
+            self._validate_framework(mapped_framework)
             mapped_agent_name = agent_name.get("agent_name") or agent_name.get("agentName")
             if not isinstance(mapped_agent_name, str):
                 raise TypeError("ModunaOTEL config requires agent_name.")
@@ -298,6 +288,7 @@ class ModunaOTEL:
 
         if framework is None:
             raise TypeError("ModunaOTEL requires a framework.")
+        self._validate_framework(framework)
 
         return ModunaOTELConfig(
             agent_name=agent_name,
@@ -306,6 +297,11 @@ class ModunaOTEL:
             headers=headers,
             auto_shutdown=auto_shutdown,
         )
+
+    def _validate_framework(self, framework: object) -> None:
+        """Validate the Python SDK only exposes supported Python frameworks."""
+        if framework != "langchain":
+            raise TypeError("ModunaOTEL only supports the 'langchain' framework in Python.")
 
     def _optional_string(self, value: Any) -> str | None:
         """Return a value only when it is a string."""

@@ -7,7 +7,6 @@ from moduna_otel.services.moduna_otel import ModunaOTEL
 from moduna_otel.types import (
     Framework,
     ModunaOTELConfig,
-    ModunaTelemetryMetadata,
     ModunaTraceContext,
 )
 
@@ -16,6 +15,5 @@ __all__ = [
     "ModunaLangChainCallbackHandler",
     "ModunaOTEL",
     "ModunaOTELConfig",
-    "ModunaTelemetryMetadata",
     "ModunaTraceContext",
 ]

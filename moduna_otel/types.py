@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, TypeAlias, TypedDict
+from typing import Literal, TypedDict
 
-Framework = Literal["langchain", "vercel-ai-sdk"]
+Framework = Literal["langchain"]
 """Framework names supported by the Moduna OpenTelemetry SDK."""
 
 
@@ -16,10 +16,6 @@ class ModunaTraceContext(TypedDict, total=False):
     session_id: str
     conversationId: str
     sessionId: str
-
-
-ModunaTelemetryMetadata: TypeAlias = dict[str, str]
-"""Dotted OpenTelemetry metadata keys accepted by Vercel AI SDK style hooks."""
 
 
 @dataclass(frozen=True, slots=True)
