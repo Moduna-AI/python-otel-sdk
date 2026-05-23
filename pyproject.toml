@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "moduna-otel"
+version = "0.1.0"
+description = "Python OpenTelemetry helpers for Moduna AI traces."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Moduna" },
+]
+dependencies = [
+  "opentelemetry-api>=1.25.0",
+  "opentelemetry-sdk>=1.25.0",
+  "opentelemetry-exporter-otlp-proto-http>=1.25.0",
+]
+
+[project.optional-dependencies]
+langchain = [
+  "langchain-core>=0.2.0",
+]
+dev = [
+  "build>=1.2.0",
+  "pytest>=8.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["moduna_otel"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
