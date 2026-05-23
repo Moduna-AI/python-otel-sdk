@@ -214,6 +214,18 @@ Run tests:
 uv run pytest
 ```
 
+Format code:
+
+```bash
+uv run ruff format
+```
+
+Run the linter:
+
+```bash
+uv run ruff check
+```
+
 Build source and wheel distributions:
 
 ```bash
@@ -231,9 +243,10 @@ Before opening a pull request:
 
 1. Add or update focused pytest coverage for behavior changes.
 2. Run `uv run pytest`.
-3. Run `uv build` for packaging changes.
-4. Keep telemetry failures non-fatal to user application code.
-5. Avoid broad refactors unless they are required for the change.
+3. Run `uv run ruff format` and `uv run ruff check`.
+4. Run `uv build` for packaging changes.
+5. Keep telemetry failures non-fatal to user application code.
+6. Avoid broad refactors unless they are required for the change.
 
 Useful areas for contribution include LangChain version compatibility,
 additional token-usage extraction cases, and documentation examples for common

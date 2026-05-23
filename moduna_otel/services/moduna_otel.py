@@ -114,7 +114,7 @@ class ModunaOTEL:
         self.start()
 
     @classmethod
-    def start_from_config(cls, config: ModunaOTELConfig) -> "ModunaOTEL":
+    def start_from_config(cls, config: ModunaOTELConfig) -> ModunaOTEL:
         """Create and start a ModunaOTEL instance from a config object."""
         return cls(config)
 
@@ -286,10 +286,14 @@ class ModunaOTEL:
             return ModunaOTELConfig(
                 agent_name=mapped_agent_name,
                 framework=mapped_framework,
-                api_key=self._optional_string(agent_name.get("api_key") or agent_name.get("apiKey") or api_key)
+                api_key=self._optional_string(
+                    agent_name.get("api_key") or agent_name.get("apiKey") or api_key
+                )
                 or os.getenv("MODUNA_API_KEY"),
                 headers=mapped_headers,
-                auto_shutdown=bool(agent_name.get("auto_shutdown", agent_name.get("autoShutdown", auto_shutdown))),
+                auto_shutdown=bool(
+                    agent_name.get("auto_shutdown", agent_name.get("autoShutdown", auto_shutdown))
+                ),
             )
 
         if framework is None:
@@ -345,8 +349,7 @@ class ModunaOTEL:
             return callback(span)
 
         accepts_positional = any(
-            parameter.kind
-            in (parameter.POSITIONAL_ONLY, parameter.POSITIONAL_OR_KEYWORD)
+            parameter.kind in (parameter.POSITIONAL_ONLY, parameter.POSITIONAL_OR_KEYWORD)
             for parameter in signature.parameters.values()
         )
         accepts_varargs = any(

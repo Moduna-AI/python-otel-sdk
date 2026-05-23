@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from opentelemetry import trace
 from opentelemetry.trace import Span, SpanKind, Status, StatusCode
@@ -15,6 +16,7 @@ from moduna_otel.types import ModunaTraceContext
 try:  # LangChain is optional so non-LangChain users keep a small install.
     from langchain_core.callbacks import BaseCallbackHandler
 except Exception:  # pragma: no cover - exercised only without langchain-core.
+
     class BaseCallbackHandler:  # type: ignore[no-redef]
         """Fallback base class used when langchain-core is not installed."""
 
@@ -59,7 +61,9 @@ class ModunaLangChainCallbackHandler(BaseCallbackHandler):
         **kwargs: Any,
     ) -> None:
         """Start a CLIENT span for a LangChain chat model run."""
-        flat_messages = [self._normalize_message(message) for batch in messages for message in batch]
+        flat_messages = [
+            self._normalize_message(message) for batch in messages for message in batch
+        ]
         self._start_run(
             serialized=serialized,
             input_messages=flat_messages,
@@ -142,11 +146,11 @@ class ModunaLangChainCallbackHandler(BaseCallbackHandler):
         self._debug_log("error", run.span, run_id=run_key)
 
     # CamelCase aliases mirror the TypeScript service and help direct usage.
-    handleChatModelStart = on_chat_model_start
-    handleLLMStart = on_llm_start
-    handleLLMNewToken = on_llm_new_token
-    handleLLMEnd = on_llm_end
-    handleLLMError = on_llm_error
+    handleChatModelStart = on_chat_model_start  # noqa: N815
+    handleLLMStart = on_llm_start  # noqa: N815
+    handleLLMNewToken = on_llm_new_token  # noqa: N815
+    handleLLMEnd = on_llm_end  # noqa: N815
+    handleLLMError = on_llm_error  # noqa: N815
 
     def _start_run(
         self,
@@ -173,7 +177,9 @@ class ModunaLangChainCallbackHandler(BaseCallbackHandler):
         span.set_attribute("langchain.run.type", run_type)
         span.set_attribute("langchain.input.count", input_count)
         span.set_attribute("langsmith.span.kind", "llm")
-        span.set_attribute("gen_ai.operation.name", "chat" if run_type == "chat_model" else "completion")
+        span.set_attribute(
+            "gen_ai.operation.name", "chat" if run_type == "chat_model" else "completion"
+        )
         span.set_attribute("llm.request.type", "chat" if run_type == "chat_model" else "completion")
 
         if parent_run_id:
@@ -188,7 +194,9 @@ class ModunaLangChainCallbackHandler(BaseCallbackHandler):
         self._apply_prompt_attributes(span, input_messages)
         self._apply_invocation_attributes(span, extra_params)
         self._apply_trace_context(span, metadata)
-        self.runs[run_id] = _ActiveLangChainRun(span=span, streamed_token_count=0, run_type=run_type)
+        self.runs[run_id] = _ActiveLangChainRun(
+            span=span, streamed_token_count=0, run_type=run_type
+        )
         self._debug_log("start", span, run_id=run_id)
 
     def _apply_model_attributes(
@@ -324,14 +332,51 @@ class ModunaLangChainCallbackHandler(BaseCallbackHandler):
         """Extract token usage from LangChain generations and llm_output."""
         usage_metadata = self._first_usage_metadata(response) or {}
         llm_output = self._get_record(response, "llm_output") or {}
-        token_usage = self._get_record(llm_output, "tokenUsage") or self._get_record(llm_output, "token_usage") or {}
+        token_usage = (
+            self._get_record(llm_output, "tokenUsage")
+            or self._get_record(llm_output, "token_usage")
+            or {}
+        )
         estimated = self._get_record(llm_output, "estimatedTokenUsage") or {}
         output_details = self._get_record(usage_metadata, "output_token_details") or {}
 
         usage: dict[str, int] = {}
-        self._assign_first_number(usage, "completion_tokens", usage_metadata, "output_tokens", token_usage, "completionTokens", token_usage, "completion_tokens", estimated, "completionTokens")
-        self._assign_first_number(usage, "prompt_tokens", usage_metadata, "input_tokens", token_usage, "promptTokens", token_usage, "prompt_tokens", estimated, "promptTokens")
-        self._assign_first_number(usage, "total_tokens", usage_metadata, "total_tokens", token_usage, "totalTokens", token_usage, "total_tokens", estimated, "totalTokens")
+        self._assign_first_number(
+            usage,
+            "completion_tokens",
+            usage_metadata,
+            "output_tokens",
+            token_usage,
+            "completionTokens",
+            token_usage,
+            "completion_tokens",
+            estimated,
+            "completionTokens",
+        )
+        self._assign_first_number(
+            usage,
+            "prompt_tokens",
+            usage_metadata,
+            "input_tokens",
+            token_usage,
+            "promptTokens",
+            token_usage,
+            "prompt_tokens",
+            estimated,
+            "promptTokens",
+        )
+        self._assign_first_number(
+            usage,
+            "total_tokens",
+            usage_metadata,
+            "total_tokens",
+            token_usage,
+            "totalTokens",
+            token_usage,
+            "total_tokens",
+            estimated,
+            "totalTokens",
+        )
         reasoning = self._get_number(output_details, "reasoning")
         if reasoning is not None:
             usage["reasoning_tokens"] = reasoning
@@ -354,7 +399,9 @@ class ModunaLangChainCallbackHandler(BaseCallbackHandler):
             for generation in generation_group:
                 message = self._get_record(generation, "message")
                 metadata = self._get_record(message, "response_metadata")
-                model = self._get_string(metadata, "model_name") or self._get_string(metadata, "model")
+                model = self._get_string(metadata, "model_name") or self._get_string(
+                    metadata, "model"
+                )
                 if model:
                     return model
         return self._get_string(llm_output, "model")
@@ -406,7 +453,9 @@ class ModunaLangChainCallbackHandler(BaseCallbackHandler):
         if isinstance(value, str | int | float | bool):
             span.set_attribute(key, value)
             return
-        if isinstance(value, list) and all(isinstance(item, str | int | float | bool) for item in value):
+        if isinstance(value, list) and all(
+            isinstance(item, str | int | float | bool) for item in value
+        ):
             span.set_attribute(key, value)
             return
         span.set_attribute(key, json.dumps(value))
@@ -458,7 +507,12 @@ class ModunaLangChainCallbackHandler(BaseCallbackHandler):
         span_context = span.get_span_context()
         self.logger.debug(
             "[moduna:langchain] %s",
-            {"event": event, "trace_id": span_context.trace_id, "span_id": span_context.span_id, **payload},
+            {
+                "event": event,
+                "trace_id": span_context.trace_id,
+                "span_id": span_context.span_id,
+                **payload,
+            },
         )
 
 
@@ -468,8 +522,7 @@ def register_global_moduna_langchain_handler(
 ) -> None:
     """Best-effort registration of a Moduna handler with Python LangChain globals."""
     try:
-        from langchain_core.tracers.context import register_configure_hook
-        from langchain_core.tracers.context import set_tracing_context
+        from langchain_core.tracers.context import register_configure_hook, set_tracing_context
 
         register_configure_hook(handler.name, inheritable=True)
         set_tracing_context(callbacks=[handler])

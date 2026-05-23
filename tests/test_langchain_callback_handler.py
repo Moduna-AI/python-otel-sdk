@@ -62,7 +62,9 @@ class FakeTracer:
         return self.span
 
 
-def test_llm_run_records_prompt_completion_usage_and_context(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_llm_run_records_prompt_completion_usage_and_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """LLM callbacks populate the core Moduna, LangChain, GenAI attributes."""
     span = FakeSpan()
     monkeypatch.setattr(module.trace, "get_tracer", Mock(return_value=FakeTracer(span)))

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "moduna-otel"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python OpenTelemetry helpers for Moduna AI traces."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -25,6 +25,7 @@ langchain = [
 dev = [
   "build>=1.2.0",
   "pytest>=8.0.0",
+  "ruff>=0.8.0",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -33,3 +34,38 @@ packages = ["moduna_otel"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+  "B",
+  "C4",
+  "D",
+  "E",
+  "F",
+  "I",
+  "N",
+  "PT",
+  "RUF",
+  "SIM",
+  "UP",
+  "W",
+]
+ignore = [
+  "D105",
+  "D107",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D100", "D101", "D102", "D103"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

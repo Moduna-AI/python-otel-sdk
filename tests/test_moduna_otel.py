@@ -117,13 +117,17 @@ def test_vercel_telemetry_returns_moduna_metadata() -> None:
 
 
 def test_instrument_sets_attributes_and_ends_span(monkeypatch: pytest.MonkeyPatch) -> None:
-    """instrument creates a CLIENT span, applies context, and ends it."""
+    """Instrument creates a CLIENT span, applies context, and ends it."""
     span = FakeSpan()
     tracer = FakeTracer(span)
     monkeypatch.setattr(module.trace, "get_tracer", Mock(return_value=tracer))
     otel = ModunaOTEL("agent", "langchain", auto_shutdown=False)
 
-    result = otel.instrument("call-model", lambda active_span: active_span.attributes["sdk.integration"], {"session_id": "s1"})
+    result = otel.instrument(
+        "call-model",
+        lambda active_span: active_span.attributes["sdk.integration"],
+        {"session_id": "s1"},
+    )
 
     assert result == "langchain"
     assert span.attributes["moduna.framework"] == "langchain"
@@ -133,7 +137,7 @@ def test_instrument_sets_attributes_and_ends_span(monkeypatch: pytest.MonkeyPatc
 
 
 def test_instrument_records_exception_and_reraises(monkeypatch: pytest.MonkeyPatch) -> None:
-    """instrument records callback exceptions without swallowing them."""
+    """Instrument records callback exceptions without swallowing them."""
     span = FakeSpan()
     monkeypatch.setattr(module.trace, "get_tracer", Mock(return_value=FakeTracer(span)))
     otel = ModunaOTEL("agent", "langchain", auto_shutdown=False)
