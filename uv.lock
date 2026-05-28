@@ -555,8 +555,8 @@ wheels = [
 ]
 
 [[package]]
-name = "moduna-otel"
-version = "0.1.4"
+name = "moduna"
+version = "0.1.5"
 source = { editable = "." }
 dependencies = [
     { name = "opentelemetry-api" },
