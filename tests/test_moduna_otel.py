@@ -76,7 +76,7 @@ def test_constructor_initializes_singleton_provider_once(monkeypatch: pytest.Mon
     FakeProvider.created = 0
     monkeypatch.setattr(module, "TracerProvider", FakeProvider)
     monkeypatch.setattr(module, "BatchSpanProcessor", lambda exporter: ("processor", exporter))
-    monkeypatch.setattr(module, "_SilentOTLPSpanExporter", Mock(return_value="exporter"))
+    monkeypatch.setattr(module, "SilentOTLPSpanExporter", Mock(return_value="exporter"))
     set_provider = Mock()
     monkeypatch.setattr(module.trace, "set_tracer_provider", set_provider)
 
@@ -92,7 +92,7 @@ def test_constructor_accepts_mapping_config(monkeypatch: pytest.MonkeyPatch) -> 
     FakeProvider.created = 0
     monkeypatch.setattr(module, "TracerProvider", FakeProvider)
     monkeypatch.setattr(module, "BatchSpanProcessor", lambda exporter: ("processor", exporter))
-    monkeypatch.setattr(module, "_SilentOTLPSpanExporter", Mock(return_value="exporter"))
+    monkeypatch.setattr(module, "SilentOTLPSpanExporter", Mock(return_value="exporter"))
     monkeypatch.setattr(module.trace, "set_tracer_provider", Mock())
 
     otel = ModunaOTEL({"agentName": "agent", "framework": "langchain", "autoShutdown": False})

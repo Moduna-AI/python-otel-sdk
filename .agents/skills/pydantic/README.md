@@ -6,6 +6,191 @@ Welcome to the comprehensive Pydantic skill for customer support tech enablement
 
 Pydantic is a data validation library that uses Python type hints to validate data at runtime, providing developer-friendly error messages when data is invalid. It's the foundation of modern Python data validation, powering frameworks like FastAPI, and is essential for building reliable customer support systems.
 
+## Moduna OTEL SDK Typed Usage
+
+The `moduna-otel` package is PEP 561 typed, so editors and type checkers can
+validate imports and public SDK calls.
+
+### Public Imports
+
+```python
+from collections.abc import Awaitable
+
+from opentelemetry.trace import Span
+
+from moduna_otel import (
+    Framework,
+    ModunaLangChainCallbackHandler,
+    ModunaOTEL,
+    ModunaOTELConfig,
+    ModunaTraceContext,
+)
+```
+
+### Public Types
+
+```python
+Framework = Literal["langchain"]
+```
+
+`Framework` is the supported Python integration name. The SDK rejects other
+framework strings at runtime.
+
+```python
+context: ModunaTraceContext = {
+    "conversation_id": "conversation-123",
+    "session_id": "session-456",
+}
+```
+
+`ModunaTraceContext` is a `TypedDict` with these optional keys:
+`conversation_id`, `session_id`, `conversationId`, and `sessionId`.
+
+```python
+config = ModunaOTELConfig(
+    agent_name="support-agent",
+    framework="langchain",
+    api_key=None,
+    headers=None,
+    auto_shutdown=True,
+)
+```
+
+`ModunaOTELConfig` is a frozen dataclass used by `ModunaOTEL.start_from_config`.
+
+### ModunaOTEL Methods
+
+```python
+otel = ModunaOTEL(
+    agent_name="support-agent",
+    framework="langchain",
+    api_key=None,
+    headers=None,
+    auto_shutdown=True,
+)
+```
+
+Constructor arguments:
+
+- `agent_name: str | ModunaOTELConfig | Mapping[str, Any]`
+- `framework: Framework | None`
+- `api_key: str | None`
+- `headers: dict[str, str] | None`
+- `auto_shutdown: bool`
+
+```python
+otel_from_config = ModunaOTEL.start_from_config(config)
+```
+
+`start_from_config(config: ModunaOTELConfig) -> ModunaOTEL` creates and starts
+the SDK from a typed config object.
+
+```python
+otel.start()
+otel.shutdown()
+```
+
+`start() -> None` installs the shared OpenTelemetry provider. `shutdown() ->
+None` flushes and shuts it down.
+
+```python
+def sync_work(span: Span) -> str:
+    span.set_attribute("app.operation", "ticket-summary")
+    return "done"
+
+result: str = otel.instrument("support.summary", sync_work, context)
+
+
+async def async_work(span: Span) -> str:
+    span.set_attribute("app.operation", "ticket-summary")
+    return "done"
+
+pending: Awaitable[str] = otel.instrument("support.summary.async", async_work, context)
+```
+
+`instrument(...)` accepts sync or async callbacks. The callback may accept a
+`Span` argument or no arguments. Exceptions are recorded on the span and then
+re-raised.
+
+```python
+handler = otel.langchain_handler(
+    context,
+    debug=False,
+    logger=None,
+)
+```
+
+`langchain_handler(context: ModunaTraceContext | None = None, *, debug: bool =
+False, logger: logging.Logger | None = None) -> ModunaLangChainCallbackHandler`
+creates a typed LangChain callback handler.
+
+```python
+global_handler = otel.register_global_langchain_handler(
+    context,
+    debug=False,
+    logger=None,
+)
+```
+
+`register_global_langchain_handler(...) -> ModunaLangChainCallbackHandler`
+creates the same handler and attempts best-effort global LangChain registration.
+
+### ModunaLangChainCallbackHandler
+
+```python
+handler = ModunaLangChainCallbackHandler(
+    trace_context=context,
+    debug=False,
+    logger=None,
+)
+```
+
+Constructor arguments:
+
+- `trace_context: ModunaTraceContext | None`
+- `debug: bool`
+- `logger: logging.Logger | None`
+
+The handler implements LangChain LLM callback methods:
+
+- `on_chat_model_start(...) -> None`
+- `on_llm_start(...) -> None`
+- `on_llm_new_token(token: str, *, run_id: Any, **kwargs: Any) -> None`
+- `on_llm_end(response: Any, *, run_id: Any, **kwargs: Any) -> None`
+- `on_llm_error(error: BaseException, *, run_id: Any, **kwargs: Any) -> None`
+
+CamelCase aliases are also available for direct use:
+`handleChatModelStart`, `handleLLMStart`, `handleLLMNewToken`,
+`handleLLMEnd`, and `handleLLMError`.
+
+### LangChain Example
+
+```python
+otel = ModunaOTEL("support-agent", "langchain")
+handler = otel.langchain_handler(
+    {
+        "conversation_id": "conversation-123",
+        "session_id": "session-456",
+    }
+)
+
+result = chain.invoke(
+    {"input": "Summarize this ticket"},
+    config={
+        "callbacks": [handler],
+        "metadata": {
+            "conversationId": "conversation-123",
+            "sessionId": "session-456",
+            "customer_tier": "enterprise",
+        },
+    },
+)
+```
+
+LangChain model spans include Moduna context, LangSmith metadata, GenAI standard
+attributes, GenAI request parameters, token usage metrics, and LLM/tool
+compatibility attributes.
+
 ## What is Pydantic?
 
 Pydantic is a data validation and settings management library that leverages Python's type hints to ensure data integrity. It validates data structures, coerces types when appropriate, and provides detailed error messages when validation fails.
