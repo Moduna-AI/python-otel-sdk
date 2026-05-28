@@ -1,24 +1,34 @@
-# moduna-otel
+# moduna
+
+[![PyPI version](https://img.shields.io/pypi/v/moduna.svg)](https://pypi.org/project/moduna/)
+[![Python versions](https://img.shields.io/pypi/pyversions/moduna.svg)](https://pypi.org/project/moduna/)
+[![Package status](https://img.shields.io/pypi/status/moduna.svg)](https://pypi.org/project/moduna/)
+[![License](https://img.shields.io/pypi/l/moduna.svg)](https://github.com/Moduna-AI/python-otel-sdk/blob/main/pyproject.toml)
+[![GitHub release](https://img.shields.io/github/v/release/Moduna-AI/python-otel-sdk.svg)](https://github.com/Moduna-AI/python-otel-sdk/releases)
+[![Upload Python Package](https://github.com/Moduna-AI/python-otel-sdk/actions/workflows/python-publish.yml/badge.svg)](https://github.com/Moduna-AI/python-otel-sdk/actions/workflows/python-publish.yml)
+[![Downloads](https://img.shields.io/pypi/dm/moduna.svg)](https://pypi.org/project/moduna/)
 
 Python OpenTelemetry helpers for Moduna AI traces.
 
-`moduna-otel` makes Moduna tracing easy to add with one import and one
-instantiation. It configures OpenTelemetry once, exports traces to Moduna over
-OTLP HTTP, and provides ergonomic helpers for Python LangChain applications.
+`moduna` makes Moduna tracing easy to add with one import and one instantiation.
+It configures OpenTelemetry once, exports traces to Moduna over OTLP HTTP, and
+provides ergonomic helpers for Python LangChain applications.
 
 ## Installation
 
-Install from the built wheel or from PyPI once published:
+Install from PyPI:
 
 ```bash
-pip install moduna-otel
+pip install moduna
 ```
 
 For LangChain callback support, install the optional LangChain dependency:
 
 ```bash
-pip install "moduna-otel[langchain]"
+pip install "moduna[langchain]"
 ```
+
+The PyPI distribution is `moduna`; the Python import package is `moduna_otel`.
 
 When working from this repository, use `uv`:
 
@@ -153,10 +163,6 @@ ModunaOTEL(
     auto_shutdown=True,     # flush on process exit
 )
 ```
-
-`vercel-ai-sdk` is not supported by this Python package because Vercel AI SDK is
-not available for Python. Use Moduna's TypeScript SDK for Vercel AI SDK
-applications.
 
 It also accepts a mapping:
 
