@@ -109,6 +109,7 @@ def test_google_llm_collects_langchain_attributes_as_json(
 
     assert span.ended is True
     assert span.attributes["gen_ai.system"] == "google"
+    assert span.attributes["gen_ai.provider.name"] == "google"
     assert span.attributes["gen_ai.request.model"] == model_name
     assert "gen_ai.prompt.0.content" in span.attributes
     assert "gen_ai.completion.0.content" in span.attributes
@@ -175,7 +176,9 @@ def test_google_weather_tool_call_collects_attributes_as_json(
     assert tool_calls
     assert tool_calls[0]["name"] == "get_weather"
     assert span.attributes["gen_ai.system"] == "google"
+    assert span.attributes["gen_ai.provider.name"] == "google"
     assert span.attributes["gen_ai.request.model"] == model_name
+    assert "gen_ai.tool.definitions" in span.attributes
     assert "tools" in span.attributes
     assert "get_weather" in collected_json
 

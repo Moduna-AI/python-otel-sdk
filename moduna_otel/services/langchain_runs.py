@@ -35,13 +35,28 @@ class LangChainRunStart:
 
 def apply_run_attributes(span: Span, run: LangChainRunStart) -> None:
     """Attach LangChain run identity and GenAI operation attributes."""
-    operation = "chat" if run.run_type == "chat_model" else "completion"
+    operation = {
+        "chat_model": "chat",
+        "llm": "text_completion",
+        "tool": "execute_tool",
+        "chain": "invoke_agent",
+        "agent": "invoke_agent",
+        "retriever": "retrieval",
+        "event": "invoke_agent",
+    }.get(run.run_type, run.run_type)
+    span_kind = {
+        "tool": "tool",
+        "chain": "chain",
+        "agent": "chain",
+        "retriever": "retriever",
+        "event": "event",
+    }.get(run.run_type, "llm")
     span.set_attribute("moduna.framework", "langchain")
     span.set_attribute("sdk.integration", "langchain")
     span.set_attribute("langchain.run.id", run.run_id)
     span.set_attribute("langchain.run.type", run.run_type)
     span.set_attribute("langchain.input.count", run.input_count)
-    span.set_attribute("langsmith.span.kind", "llm")
+    span.set_attribute("langsmith.span.kind", span_kind)
     span.set_attribute("gen_ai.operation.name", operation)
     span.set_attribute("llm.request.type", operation)
     if run.parent_run_id:

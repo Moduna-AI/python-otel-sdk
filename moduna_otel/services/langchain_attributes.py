@@ -56,6 +56,9 @@ LLM_COMPAT_PARAMETER_ATTRIBUTES: Mapping[str, tuple[str, ...]] = {
 }
 """LangSmith-supported compatibility attributes for common LLM tool params."""
 
+GENAI_TOOL_DEFINITION_KEYS: tuple[str, ...] = ("tools", "functions")
+"""Invocation parameter keys that carry model request tool definitions."""
+
 TOOL_NAME_KEYS: tuple[str, ...] = ("tool_name", "toolName", "name")
 """Invocation parameter keys LangSmith accepts as ``gen_ai.tool.name``."""
 
@@ -81,6 +84,7 @@ def apply_model_attributes(
         or infer_provider(model_id, model_name)
     )
     span.set_attribute("gen_ai.system", provider)
+    span.set_attribute("gen_ai.provider.name", provider)
     span.set_attribute("gen_ai.request.model", model_name)
     span.set_attribute("gen_ai.response.model", model_name)
     span.set_attribute("llm.model_name", model_name)
@@ -112,6 +116,7 @@ def apply_trace_context(
 
     if conversation_id:
         span.set_attribute("moduna.conversation.id", conversation_id)
+        span.set_attribute("gen_ai.conversation.id", conversation_id)
         span.set_attribute("langsmith.metadata.conversation_id", conversation_id)
     if session_id:
         span.set_attribute("moduna.session.id", session_id)
@@ -163,6 +168,11 @@ def apply_invocation_attributes(span: Span, extra_params: dict[str, Any]) -> Non
     for source_key, attribute_keys in LLM_COMPAT_PARAMETER_ATTRIBUTES.items():
         for attribute_key in attribute_keys:
             set_attribute_if_supported(span, attribute_key, invocation_params.get(source_key))
+    for source_key in GENAI_TOOL_DEFINITION_KEYS:
+        tool_definitions = invocation_params.get(source_key)
+        if tool_definitions:
+            set_attribute_if_supported(span, "gen_ai.tool.definitions", tool_definitions)
+            break
     for source_key in TOOL_NAME_KEYS:
         tool_name = get_string(invocation_params, source_key)
         if tool_name:
@@ -196,6 +206,12 @@ def apply_completion_attributes(span: Span, response: Any) -> None:
     response_model = response_model_name(response)
     if response_model:
         span.set_attribute("gen_ai.response.model", response_model)
+    response_id = response_identifier(response)
+    if response_id:
+        span.set_attribute("gen_ai.response.id", response_id)
+    finish_reasons = response_finish_reasons(response)
+    if finish_reasons:
+        span.set_attribute("gen_ai.response.finish_reasons", finish_reasons)
 
 
 def apply_usage_attributes(span: Span, response: Any, streamed_token_count: int) -> None:
@@ -222,6 +238,43 @@ def apply_usage_attributes(span: Span, response: Any, streamed_token_count: int)
         span.set_attribute("llm.usage.total_tokens", total_tokens)
     if reasoning_tokens is not None:
         span.set_attribute("gen_ai.usage.details.reasoning_tokens", reasoning_tokens)
+        span.set_attribute("gen_ai.usage.reasoning.output_tokens", reasoning_tokens)
+    cache_read_tokens = usage.get("cache_read_input_tokens")
+    if cache_read_tokens is not None:
+        span.set_attribute("gen_ai.usage.cache_read.input_tokens", cache_read_tokens)
+    cache_creation_tokens = usage.get("cache_creation_input_tokens")
+    if cache_creation_tokens is not None:
+        span.set_attribute(
+            "gen_ai.usage.cache_creation.input_tokens",
+            cache_creation_tokens,
+        )
+
+
+def apply_tool_call_attributes(
+    span: Span,
+    tool_name: str,
+    tool_input: Any,
+    metadata: dict[str, Any] | None,
+    extra_params: dict[str, Any],
+) -> None:
+    """Attach GenAI tool execution request attributes."""
+    span.set_attribute("gen_ai.tool.name", tool_name)
+    span.set_attribute("gen_ai.tool.type", "function")
+    call_id = (
+        get_string(extra_params, "tool_call_id")
+        or get_string(extra_params, "toolCallId")
+        or get_string(extra_params, "id")
+        or get_string(metadata, "tool_call_id")
+        or get_string(metadata, "toolCallId")
+    )
+    if call_id:
+        span.set_attribute("gen_ai.tool.call.id", call_id)
+    set_attribute_if_supported(span, "gen_ai.tool.call.arguments", tool_input)
+
+
+def apply_tool_result_attributes(span: Span, output: Any) -> None:
+    """Attach GenAI tool execution result attributes."""
+    set_attribute_if_supported(span, "gen_ai.tool.call.result", output)
 
 
 def response_model_name(response: Any) -> str | None:
@@ -235,6 +288,52 @@ def response_model_name(response: Any) -> str | None:
             if model:
                 return model
     return get_string(llm_output, "model")
+
+
+def response_identifier(response: Any) -> str | None:
+    """Find provider response identifier when exposed by LangChain metadata."""
+    llm_output = get_record(response, "llm_output") or {}
+    for generation_group in get_value(response, "generations", []) or []:
+        for generation in generation_group:
+            message = get_mapping_or_object(generation, "message")
+            metadata = get_record(message, "response_metadata") or {}
+            response_id = (
+                get_string(metadata, "id")
+                or get_string(metadata, "response_id")
+                or get_string(metadata, "system_fingerprint")
+            )
+            if response_id:
+                return response_id
+    return get_string(llm_output, "id") or get_string(llm_output, "response_id")
+
+
+def response_finish_reasons(response: Any) -> list[str] | None:
+    """Collect provider finish reasons from LangChain generation metadata."""
+    finish_reasons: list[str] = []
+    for generation_group in get_value(response, "generations", []) or []:
+        for generation in generation_group:
+            reason = generation_finish_reason(generation)
+            if reason is not None:
+                finish_reasons.append(reason)
+    return finish_reasons or None
+
+
+def generation_finish_reason(generation: Any) -> str | None:
+    """Find a finish reason on a LangChain generation or its message metadata."""
+    direct_reason = get_string(generation, "finish_reason")
+    if direct_reason:
+        return direct_reason
+    generation_info = get_record(generation, "generation_info") or {}
+    info_reason = get_string(generation_info, "finish_reason")
+    if info_reason:
+        return info_reason
+    message = get_mapping_or_object(generation, "message")
+    metadata = get_record(message, "response_metadata") or {}
+    return (
+        get_string(metadata, "finish_reason")
+        or get_string(metadata, "stop_reason")
+        or get_string(metadata, "finishReason")
+    )
 
 
 def first_tool_name(invocation_params: dict[str, Any]) -> str | None:

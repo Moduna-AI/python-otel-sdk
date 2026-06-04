@@ -20,6 +20,8 @@ def extract_usage(response: Any) -> dict[str, int]:
         get_record(llm_output, "tokenUsage") or get_record(llm_output, "token_usage") or {}
     )
     estimated = get_record(llm_output, "estimatedTokenUsage") or {}
+    input_details = get_record(usage_metadata, "input_token_details") or {}
+    input_details_alt = get_record(usage_metadata, "input_tokens_details") or {}
     output_details = get_record(usage_metadata, "output_token_details") or {}
     output_details_alt = get_record(usage_metadata, "output_tokens_details") or {}
 
@@ -69,6 +71,27 @@ def extract_usage(response: Any) -> dict[str, int]:
     )
     if reasoning is not None:
         usage["reasoning_tokens"] = reasoning
+    cache_read = (
+        get_number(usage_metadata, "cache_read_input_tokens")
+        or get_number(usage_metadata, "cached_tokens")
+        or get_number(input_details, "cache_read")
+        or get_number(input_details, "cache_read_tokens")
+        or get_number(input_details, "cached_tokens")
+        or get_number(input_details_alt, "cache_read")
+        or get_number(input_details_alt, "cache_read_tokens")
+        or get_number(input_details_alt, "cached_tokens")
+    )
+    if cache_read is not None:
+        usage["cache_read_input_tokens"] = cache_read
+    cache_creation = (
+        get_number(usage_metadata, "cache_creation_input_tokens")
+        or get_number(input_details, "cache_creation")
+        or get_number(input_details, "cache_creation_tokens")
+        or get_number(input_details_alt, "cache_creation")
+        or get_number(input_details_alt, "cache_creation_tokens")
+    )
+    if cache_creation is not None:
+        usage["cache_creation_input_tokens"] = cache_creation
     return usage
 
 
