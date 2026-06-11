@@ -1,78 +1,55 @@
-[build-system]
-requires = ["hatchling>=1.26"]
-build-backend = "hatchling.build"
-
 [project]
 name = "moduna"
-version = "0.1.6"
-description = "Python OpenTelemetry helpers for Moduna AI traces."
+version = "0.1.9"
+description = "Moduna Python SDK for tracing AI agent frameworks with Traceloop."
 readme = "README.md"
-requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [
-  { name = "Moduna" },
-]
+license = "MIT"
+authors = [{ name = "Moduna" }]
+keywords = ["ai", "agents", "langchain", "crewai", "observability", "tracing"]
+requires-python = ">=3.13,<3.14"
 dependencies = [
-  "opentelemetry-api>=1.25.0",
-  "opentelemetry-sdk>=1.25.0",
-  "opentelemetry-exporter-otlp-proto-http>=1.25.0",
+    "langchain>=1.3.4",
+    "langchain-core>=1.4.0",
+    "langchain-google-genai>=4.2.4",
+    "opentelemetry-instrumentation-crewai>=0.61.0",
+    "opentelemetry-instrumentation-langchain>=0.61.0",
+    "pydantic>=2.13.4",
+    "traceloop-sdk>=0.61.0",
 ]
 
 [project.optional-dependencies]
+crewai = ["opentelemetry-instrumentation-crewai>=0.61.0"]
 langchain = [
-  "langchain-core>=0.2.0",
+    "langchain>=1.3.4",
+    "langchain-core>=1.4.0",
+    "langchain-google-genai>=4.2.4",
+    "opentelemetry-instrumentation-langchain>=0.61.0",
 ]
-dev = [
-  "basedpyright>=1.39.6",
-  "build>=1.2.0",
-  "langchain-google-genai>=4.0.0",
-  "python-dotenv>=1.0.0",
-  "pytest>=8.0.0",
-  "ruff>=0.8.0",
-]
+
+[project.scripts]
+moduna-agent = "services.agent_cli:main"
+
+[dependency-groups]
+dev = ["pytest>=9.0.2", "ruff>=0.15.16"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["moduna_otel"]
+packages = ["moduna", "model", "services", "tools", "util"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]
+[tool.hatch.build.targets.wheel.force-include]
+"config.toml" = "config.toml"
 
 [tool.ruff]
-line-length = 100
-target-version = "py310"
+line-length = 80
+target-version = "py313"
 
 [tool.ruff.lint]
-select = [
-  "B",
-  "C4",
-  "D",
-  "E",
-  "F",
-  "I",
-  "N",
-  "PT",
-  "RUF",
-  "SIM",
-  "UP",
-  "W",
-]
-ignore = [
-  "D105",
-  "D107",
-]
-
-[tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["D100", "D101", "D102", "D103"]
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
+select = ["E", "W", "F", "I", "B", "C4", "UP", "SIM"]
+ignore = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-line-ending = "auto"
-
-[tool.basedpyright]
-typeCheckingMode = "standard"
-include = ["moduna_otel"]
