@@ -109,3 +109,33 @@ def test_public_framework_names_are_accepted(tmp_path: Path) -> None:
     )
 
     assert config.framework == Instruments.LANGCHAIN
+
+
+def test_local_config_overrides_production_base_url(tmp_path: Path) -> None:
+    """A local config file should override the production collector URL."""
+    config = ModunaConfigurationService(
+        config_path=write_config(tmp_path)
+    ).build(
+        {
+            "app_name": "support",
+            "framework": Instruments.LANGCHAIN,
+            "api_key": "mod_test",
+        }
+    )
+
+    assert config.base_url == "http://localhost:4318"
+
+
+def test_missing_local_config_uses_production_base_url(tmp_path: Path) -> None:
+    """The model default should be used when local config is absent."""
+    config = ModunaConfigurationService(
+        config_path=tmp_path / "missing.toml"
+    ).build(
+        {
+            "app_name": "support",
+            "framework": Instruments.LANGCHAIN,
+            "api_key": "mod_test",
+        }
+    )
+
+    assert config.base_url == ("https://volex-506013021984.asia-south1.run.app")

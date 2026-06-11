@@ -39,9 +39,6 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["moduna", "model", "services", "tools", "util"]
 
-[tool.hatch.build.targets.wheel.force-include]
-"config.toml" = "config.toml"
-
 [tool.ruff]
 line-length = 80
 target-version = "py313"

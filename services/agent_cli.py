@@ -65,12 +65,12 @@ class DomainAgentCli:
 
     def setup_tracing(self, conversation_id: str) -> None:
         """Initialize Moduna tracing for CLI agent runs."""
-        from moduna import AgentFramework, Moduna
+        from moduna import Instruments, Moduna
 
         Moduna().init(
             {
                 "app_name": f"moduna-{conversation_id}",
-                "framework": AgentFramework.Langchain,
+                "framework": Instruments.LANGCHAIN,
                 "api_key": os.environ.get("MODUNA_API_KEY"),
             }
         )

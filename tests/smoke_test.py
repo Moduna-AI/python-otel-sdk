@@ -1,4 +1,4 @@
-"""Public API tests for the Moduna SDK."""
+"""Smoke test for built Moduna distributions."""
 
 from importlib.metadata import version
 
@@ -8,11 +8,14 @@ from moduna import Instruments, Moduna, ModunaConfiguration, __version__
 from moduna.sdk.tracing import set_conversation_id
 
 
-def test_public_exports_are_available() -> None:
-    """The package should expose the documented public API."""
-    assert Moduna is not None
+def main() -> None:
+    """Verify the installed distribution exposes the documented API."""
     assert Instruments is TraceloopInstruments
-    assert Instruments.LANGCHAIN is TraceloopInstruments.LANGCHAIN
+    assert Moduna is not None
     assert ModunaConfiguration is not None
     assert __version__ == version("moduna")
     assert callable(set_conversation_id)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,14 +1,14 @@
 """Moduna SDK LangChain example."""
 
 import os
+import uuid
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from moduna import Moduna
-from moduna.sdk.tracing import Instruments, set_conversation_id
-import uuid
+from moduna import Instruments, Moduna
+from moduna.sdk.tracing import set_conversation_id
 
 
 def run_example() -> None:

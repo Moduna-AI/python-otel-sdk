@@ -1,0 +1,130 @@
+name: CI and Publish
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Validate and build
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.package-version.outputs.version }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.20"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install Python
+        run: uv python install
+
+      - name: Install project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Check lockfile
+        run: uv lock --check
+
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Test
+        run: uv run pytest
+
+      - name: Build distributions
+        run: uv build
+
+      - name: Read package version
+        id: package-version
+        run: echo "version=$(uv version --short)" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke test wheel
+        run: uv run --isolated --no-project --with dist/*.whl tests/smoke_test.py
+
+      - name: Smoke test source distribution
+        run: uv run --isolated --no-project --with dist/*.tar.gz tests/smoke_test.py
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: moduna-${{ steps.package-version.outputs.version }}
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.20"
+
+      - name: Download distributions
+        uses: actions/download-artifact@v5
+        with:
+          name: moduna-${{ needs.build.outputs.version }}
+          path: dist/
+
+      - name: Check PyPI version
+        id: pypi-version
+        env:
+          PACKAGE_NAME: moduna
+          PACKAGE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          if ! status="$(
+            curl --silent --show-error --output /dev/null --write-out "%{http_code}" \
+              "https://pypi.org/pypi/${PACKAGE_NAME}/${PACKAGE_VERSION}/json"
+          )"; then
+            echo "::error::Unable to query PyPI."
+            exit 1
+          fi
+
+          case "$status" in
+            200)
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+              echo "${PACKAGE_NAME} ${PACKAGE_VERSION} already exists on PyPI; skipping publish."
+              ;;
+            404)
+              echo "publish=true" >> "$GITHUB_OUTPUT"
+              echo "${PACKAGE_NAME} ${PACKAGE_VERSION} is new and will be published."
+              ;;
+            *)
+              echo "::error::Unexpected PyPI response status: ${status}"
+              exit 1
+              ;;
+          esac
+
+      - name: Verify PyPI token
+        if: steps.pypi-version.outputs.publish == 'true'
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          if [ -z "$UV_PUBLISH_TOKEN" ]; then
+            echo "::error::Repository secret PYPI_TOKEN is not configured."
+            exit 1
+          fi
+
+      - name: Publish distributions
+        if: steps.pypi-version.outputs.publish == 'true'
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: uv publish --check-url https://pypi.org/simple/ dist/*

@@ -40,7 +40,7 @@ moduna = Moduna()
 moduna.init(
     {
         "app_name": "customer support",
-        "framework": Instruments.Langchain,
+        "framework": Instruments.LANGCHAIN,
         "api_key": "mod_...",
     }
 )
@@ -62,9 +62,15 @@ Moduna resolves the API key in this order:
 2. exported `MODUNA_API_KEY`
 3. `MODUNA_API_KEY=...` in a local `.env` file
 
-The default API base URL is read from `config.toml`:
+The production Moduna endpoint is used by default. For local development, create
+an ignored `config.toml` in the project root to switch to a local collector:
 
-You can override it per application:
+```toml
+[sdk]
+base_url = "http://localhost:4318"
+```
+
+You can also override the endpoint per application:
 
 ```python
 from moduna import Instruments, Moduna
@@ -72,7 +78,8 @@ from moduna import Instruments, Moduna
 Moduna().init(
     {
         "app_name": "support-agent",
-        "framework": Instruments.Langchain,
+        "framework": Instruments.LANGCHAIN,
+        "base_url": "http://localhost:4318",
     }
 )
 ```
@@ -86,7 +93,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from moduna import Instruments, Moduna
 from moduna.sdk.tracing import set_conversation_id
 
-Moduna().init({"app_name": "langchain-app", "framework": Instruments.Langchain})
+Moduna().init({"app_name": "langchain-app", "framework": Instruments.LANGCHAIN})
 set_conversation_id("conversation-1")
 
 prompt = ChatPromptTemplate.from_messages([("human", "{question}")])
@@ -98,7 +105,7 @@ prompt = ChatPromptTemplate.from_messages([("human", "{question}")])
 from moduna import Instruments, Moduna
 from moduna.sdk.tracing import set_conversation_id
 
-Moduna().init({"app_name": "crewai-app", "framework": Instruments.Crewai})
+Moduna().init({"app_name": "crewai-app", "framework": Instruments.CREWAI})
 set_conversation_id("crew-run-1")
 ```
 
@@ -119,3 +126,31 @@ uv build
 ```
 
 Use `uv run ruff format --check .` in CI when you want formatting verification without rewriting files.
+
+## Publishing
+
+GitHub Actions validates pull requests and every push to `main`. A successful
+`main` build publishes only when the version in `pyproject.toml` does not
+already exist on PyPI.
+
+Configure the PyPI token once:
+
+1. Open the GitHub repository.
+2. Go to **Settings → Secrets and variables → Actions**.
+3. Add a repository secret named `PYPI_TOKEN`.
+4. Paste the PyPI token value from your local `.env`.
+
+Never commit `.env` or the token.
+
+Prepare a release with uv:
+
+```bash
+source .venv/bin/activate
+uv version --bump patch
+git add pyproject.toml uv.lock
+git commit -m "Release Moduna $(uv version --short)"
+git push origin main
+```
+
+Changes that do not bump the version still run the full CI pipeline and skip
+the PyPI upload successfully.
